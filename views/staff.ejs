@@ -1,0 +1,113 @@
+<% let date = new Date() %> 
+<% if (staffDate) { %> 
+    <% date = new Date(staffDate) %> 
+<% } %> 
+<% function getMonthLabel(date) { %>
+    <% const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] %>
+    <% return months[date.getMonth()] %>
+<% } %> 
+<% let yearShortStr = date.getFullYear().toString() %> 
+<% let monthShortStr = date.getMonth() <= 8 ? "0" + (date.getMonth() + 1).toString() : (date.getMonth() + 1).toString() %> 
+<% let dateShortStr = date.getDate() < 10 ? "0" + date.getDate() : date.getDate().toString() %> 
+<% let monthLongStr = getMonthLabel(date) %>
+<% let lastDayOfMonth = new Date(new Date(date.getFullYear(),date.getMonth() + 1 ,1) - 1).getDate() %> 
+<% const weekday = ["U", "M", "T", "W", "R", "F", "S"] %>
+<% const staffDateWeek = Array(lastDayOfMonth).fill(null).map((el, idx) => { %>
+    <% let newDate = new Date(date); %>
+    <% newDate.setDate(newDate.getDate() + idx) %>
+    <% return weekday[newDate.getDay()] %>
+<% }) %>
+<% %>
+<% function getlastDayOfMonth(date, month) { %>
+    <% return lastDayOfMonth = new Date(new Date(date.getFullYear(),month + 1 ,1) - 1).getDate() %> 
+<% } %>
+<div class="container justify-content-center px-4 py-4 mr-4">
+    <table width="100%">
+        <tr>
+            <td class="text-center" colspan="<%- lastDayOfMonth + 2 %>">
+                <h1><%- title.toUpperCase() %></h1>
+             </td>            
+        </tr>
+        <tr>
+            <td colspan="<%- lastDayOfMonth + 2 %>"><hr /></td>
+        </tr>   
+        <tr>
+            <td colspan="<%- lastDayOfMonth + 2 %>" class="text-center px-4"> <img class="profile" src="<%- staff.picture %>" /><h5><% if ( staff.name.title  === "Monsieur") { %>Mr<% } else if (staff.name.title  === "Mademoiselle" || staff.name.title  === "Madame") { %>Ms<% } else { %><%- staff.name.title %> <% } %> <%- staff.name.first %> <%- staff.name.last %></h5></td>
+        </tr>
+        <tr>
+            <td colspan="<%- lastDayOfMonth + 2 %>" class="text-center px-4"><h6><%- staff.role %> @ Team <%- staff.team %></h6></td>
+        <tr>
+            <td class="text-center">
+                <button class="btn btn-outline-primary btn-sm" style="width:120px" type="button" onClick="window.print()"><i class="fa-solid fa-print"></i> Print</button>
+            </td>
+        </tr>            
+        </tr>
+        <tr>
+            <td colspan="<%- lastDayOfMonth + 2 %>"><hr /></td>
+        </tr>
+    </table>
+<% if (staff.attendance.length) { %>
+    <% const staffAttendance = staff.attendance.sort((a, b) => b - a ) %>
+    <% const staffYears = [] %>
+    <% staffAttendance.forEach((el, idx) => { %>
+        <% if (staffYears.indexOf(el.getFullYear()) === -1) { %>
+            <% staffYears.push(el.getFullYear()) %>
+        <% } %>
+    <% }) %> 
+    <table class="table table-striped" width="100%">
+    <% let colCount = 0%>
+    <% for (let year of staffYears) { %>
+        <% const years = staffAttendance.filter((el) => el.getFullYear() === parseInt(year))%>
+        <% const yearTable = Array(12).fill(0).map((e) => Array(31).fill(0)) %>
+        <tr>
+            <td class="bg-primary text-light px-2 py-2" colspan="<%- lastDayOfMonth + 2 %>"><%- year %></td>
+        </tr>
+        <tr>
+            <td class="bg-secondary text-light" >&nbsp;</td>
+        <% for (let j=1; j<=lastDayOfMonth; j++) {  %>
+            <td class="bg-secondary text-light text-center" style="width:32px"><%- j %></td>
+        <% } %>
+            <td class="bg-secondary text-light text-center"><i class="fa-regular fa-clone"></i></td>
+        </tr>
+        <% for (let i=0; i<=11; i++ ) { %>
+        <tr>
+            <td class="fw-normal"><%- new Date(year, i, 1).toLocaleString('default', { month: 'long' }) %></td>
+            <% for (let j=1; j<=getlastDayOfMonth(new Date(year, i, 1), i); j++) {  %>
+            <td class="text-center">
+                <% const date = years.find( date => date.getTime() === new Date(year, i, j).getTime(), ); %>
+                <% if (date !== undefined) { %>
+                1
+                    <% yearTable[i][j] = 1 %>
+                    <% } else {%>
+                -
+                    <% } %>        
+            </td>
+            <% } %>
+            <% const rowTotal = yearTable.map(r => r.reduce((a, b) => a + b))  %>
+            <% for (let j=1; j<=31-getlastDayOfMonth(new Date(year, i, 1), i); j++) {  %>
+            <td class="text-center">-</td>
+            <% } %>
+            <td class="text-center"><% if (rowTotal[i]) { %><%- rowTotal[i] %><% } else { %>-<% } %></td>
+        </tr>
+        <% } %>
+        <tr>
+            <td class="bg-dark text-light">Total</td>
+        <% const columnTotal = yearTable.reduce((a, b) => a.map((x, i) => x + b[i])) %>        
+        <% for (let i=0; i<31; i++) {  %>
+            <td class="bg-dark text-light text-center"><% if (columnTotal[i-1]) { %><%- columnTotal[i-1] %><% } else { %>-<% } %></td>
+        <% }%>
+        <% let columnTotalGrand = columnTotal.reduce((a, b) => a + (b ? b : 0)) %>
+            <td class="bg-dark text-light text-center"><%- columnTotalGrand %></td>
+        </tr>
+        <% if (colCount != staffYears.length - 1) { %>
+        <tr>   
+            <td colspan="<%- lastDayOfMonth + 2 %>"><hr></td>
+        </tr>
+        <% } %>
+        <% colCount += 1 %>
+    <% } %>
+    </table>
+<% } else { %>
+    <div class="text-center"><h5>No attendance records found</h5></div>
+<% } %>
+</div>  

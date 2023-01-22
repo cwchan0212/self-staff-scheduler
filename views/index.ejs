@@ -1,0 +1,233 @@
+<% let date = new Date() %> 
+<% if (staffDate) { %> 
+    <% date = new Date(staffDate) %> 
+<% } %>
+<%# The function getMonthLabel returns the month in the long form  %>
+<% function getMonthLabel(date) { %>
+    <% const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] %>
+    <% return months[date.getMonth()] %>
+<% } %> 
+<%# Set year, month and date in the short digit format %>
+<% let yearShortStr = date.getFullYear().toString() %> 
+<% let monthShortStr = date.getMonth() <= 8 ? "0" + (date.getMonth() + 1).toString() : (date.getMonth() + 1).toString() %> 
+<% let dateShortStr = date.getDate() < 10 ? "0" + date.getDate() : date.getDate().toString() %> 
+<% let monthLongStr = getMonthLabel(date) %>
+<%# Calculate the last day of the month %>
+<% let lastDayOfMonth = new Date(new Date(date.getFullYear(),date.getMonth() + 1 ,1) - 1).getDate() %> 
+<%# Set the weekday array to store its short forms %>
+<% const weekday = ["U", "M", "T", "W", "R", "F", "S"] %>
+<%# Generate the weekdays of the month in short form and store them in the array %>
+<% const staffDateWeek = Array(lastDayOfMonth).fill(null).map((el, idx) => {
+    let newDate = new Date(date);
+    newDate.setDate(newDate.getDate() + idx)
+    return weekday[newDate.getDay()]
+}) %>
+<%# Set the object to store team structure: team number and number of team members %>
+<% const staffTeam = {} %>
+<% staff.forEach((one, index) => { %>
+    <% if (staffTeam.hasOwnProperty(one.team)) { %>
+        <% staffTeam[one.team] += 1%>
+    <% } else { %>
+        <% staffTeam[one.team] = 1%>
+    <% } %>
+<% }) %>
+<%# Set the columnCount 2D array to store attendance records in the month %>
+<% let columnCount = [] %>
+<% if (staffTeam) { %>
+    <% columnCount = Array(Object.keys(staffTeam).length).fill(0).map((e) => Array(lastDayOfMonth).fill(0)) %>
+<%  } %>
+<%# This function counts and displays the totals of columns and rows automatically %>
+<%# Note: The number of days is different every month, and the length of the array is different. Keep it in ejs view %>
+<script>
+    let column = {};
+    let columnTotal = {};
+    let rowTotal = {};
+    let teams = <%- JSON.stringify(staffTeam) %>;
+    $(document).ready(function () {
+        for (let team in teams) {
+            let teamIndex = team;
+            let numOfStaffs = teams[teamIndex];
+            columnTotal[teamIndex - 1] = Array(<%- lastDayOfMonth %>).fill(0); // teamIndex needs to minus 1 to 0
+            rowTotal[teamIndex - 1] = Array(numOfStaffs).fill(0);
+            for (let i = 0; i < numOfStaffs; i++) {
+                updateColumn("staff-" + (teamIndex - 1) + "-" + i, numOfStaffs);
+                console.log("first load...")
+            }
+        }
+
+        function updateColumn(staffId, numOfStaffs) {
+            let staffIndex = parseInt(staffId.split("-")[2]);
+            let teamIndex = parseInt(staffId.split("-")[1]); 
+            column[staffId] = Array(<%- lastDayOfMonth %>).fill(0);
+            if ($(`#${staffId}`).get().length > 0) {
+                // console.log(`Element with id ${staffId} was found.`);
+            } else {
+                // console.log(`Element with id ${staffId} was not found.`);
+            }
+            $(`#${staffId} input[type="checkbox"]`).each(function (i) {
+                let checkbox = $(this);
+                let isChecked = checkbox.is(":checked");
+                column[staffId][i] = isChecked ? 1 : 0;
+                columnTotal[teamIndex][i] += isChecked ? 1 : 0;
+                rowTotal[teamIndex][staffIndex] += isChecked ? 1 : 0;
+            });
+
+            $(`#${staffId} input[type="checkbox"]`).on("change", function () {
+                console.log("update...")
+                let checkbox = $(this);
+                let i = $(`#${staffId} input[type="checkbox"]`).index(this);
+                let isChecked = checkbox.is(":checked");
+                column[staffId][i] = isChecked ? 1 : 0;
+                for (let team in teams) {
+                    if (teamIndex == team -1) { 
+                        columnTotal[teamIndex] = Array(<%- lastDayOfMonth %>).fill(0);   
+                        rowTotal[teamIndex] = Array(numOfStaffs).fill(0)                    
+                        for (let i= 0; i<numOfStaffs; i++) {
+                            let staffIdPrefix = "staff-" + teamIndex + "-" + i
+                            for (let j=0; j<<%- lastDayOfMonth %>; j++) {
+                                columnTotal[teamIndex][j] += column[staffIdPrefix][j]                                                         
+                            }
+                            rowTotal[teamIndex][i] = column[staffIdPrefix].reduce((a, b) => a + b)    
+                        }                         
+                    }                    
+                }
+
+                const columnTotalColumn = Array(Object.keys(columnTotal[0]).length).fill(0);
+                let grandTotal = 0
+                for (let rowIndex in columnTotal) {
+                    let columnTotalRow = 0;                    
+                    const rowItems = columnTotal[rowIndex]                    
+                    for (let colIndex in rowItems) {
+                        $('#columnTotal-' + rowIndex + "-" + colIndex ).html(rowItems[colIndex])
+                        columnTotalRow += rowItems[colIndex] 
+                        columnTotalColumn[colIndex] += rowItems[colIndex] 
+                    }                    
+                    $('#columnTotalRow-' + rowIndex).html(columnTotalRow)
+                }
+
+                columnTotalColumn.forEach((col,index)=>{
+                    $('#columnTotalColumn-' + index).html(col);
+                    grandTotal += col;
+                });
+
+                $('#columnTotalGrand').html(grandTotal);
+                for (let rowIndex in rowTotal) {
+                    const rowItems = rowTotal[rowIndex]
+                    for (let colIndex in rowItems) {
+                        $('#rowTotal-' + rowIndex + "-" + colIndex ).html(rowItems[colIndex])
+                    }
+                }           
+            });
+        }
+    })
+</script>
+<%# Set the colIndex to track the cursor of colIndex to update columnTotal array %>
+<% let colIndex = 0 %>
+<div class="container min-vw-100">
+    <table class="table table-striped bg-light">
+        <thead>
+            <tr>
+                <td class="flex-row text-center" colspan="<%- lastDayOfMonth + 2 %>">
+                    <h1 style="letter-spacing: 0.3rem;"><%- title.toUpperCase() %></h1> 
+                    <form id="dateForm" action="/" method="post">
+                        <button id="dateMinus" class="btn btn-outline-dark btn-sm" type="button" name="staffSubmit" value="left"><i class="fa-solid fa-minus"></i></button>
+                        <input id="dateField" type="month" class="btn btn-outline-dark btn-sm justify-content-center" name="staffDate" min="<%- (parseInt(yearShortStr)-1) %>-<%- monthShortStr %>" max="<%- (parseInt(yearShortStr)+1) %>-<%- monthShortStr %>" value="<%- yearShortStr %>-<%- monthShortStr %>" />
+                        <button id="datePlus" class="btn btn-outline-dark btn-sm" type="button" name="staffSubmit" value="right"><i class="fa-solid fa-plus"></i></button>
+                    </form>
+                </td>
+            </tr>
+            <tr>                
+                <td class="justify-content-around" colspan="<%- lastDayOfMonth + 2 %>">
+                    <form action="/report" method="post" id="reportForm">
+                        <button class="btn btn-primary btn-sm pe-none" ><i class="fa-solid fa-book"></i> Report </button>
+                        <input id="dateField" type="hidden" class="btn btn-outline-dark btn-sm justify-content-center" name="staffDate" min="<%- (parseInt(yearShortStr)-1) %>-<%- monthShortStr %>" max="<%- (parseInt(yearShortStr)+1) %>-<%- monthShortStr %>" value="<%- yearShortStr %>-<%- monthShortStr %>" />
+                        <button type="submit" id="report-all" value="all" class="team-button btn btn-outline-primary btn-sm" style="width: 42px"> All </button> 
+<%# Print the report button for all teams %>
+<% Object.keys(staffTeam).forEach(key => { %>
+                        <button type="submit" id="report-<%- key %>" value="<%- key %>"class="team-button btn btn-outline-primary btn-sm" style="width: 42px"><%- key %></button>
+<% }) %>
+                    </form>
+                </td>                
+            </tr>
+        </thead>
+        <tbody>
+            <tr style="line-height: 5px;border:1px;">
+                <td></td>
+<%# Print the weekdays label %>
+<% staffDateWeek.forEach((el, idx) => {  %>
+                <td class="text-center <% if (el === "U") { %>bg-dark text-light<% } else if (el === "S") { %>bg-secondary text-light<% } %>"><%- el %></td>
+<% }) %>
+                <td>&nbsp;</td>
+            </tr>
+            <tr>
+                <td>Name</td>
+<%# Print the days of the month %>
+<% for (let i=1; i<=lastDayOfMonth; i++) { %>
+                <td class="text-center<% if (staffDateWeek[i-1] === "U") { %> bg-dark text-light<% } else if (staffDateWeek[i-1] === "S") { %> bg-secondary text-light<% } %>" style="width:35px"><%- i %></td>
+<% } %>
+                <td style="width:30px">Total</td>
+            </tr>
+<%# Print all the teams' records per team %>
+<%  for (const [teamNum, numOfStaff] of Object.entries(staffTeam)) { %>
+            <form id="actionForm" action="/action#team-<%- colIndex %>" method="post">
+                <input type="hidden" name="staffDate" value="<%- yearShortStr%>-<%- monthShortStr%>">
+                <tr>
+                    <td class="bg-primary text-light" colspan="<%- lastDayOfMonth + 2 %>"><button class="btn btn-outline-light btn-sm pe-none" type="button"><i class="fa-solid fa-user-group"></i> <a id="team-<%- parseInt(colIndex) %>">Team <%- teamNum %></a></button></td>                
+                </tr>
+        <%# Extract the team records for specific team %>       
+        <% const teamStaff = staff.filter((staff, index) => parseInt(staff.team) === parseInt(teamNum) ) %>
+        <%# Set the cursor to the index of the team member %> 
+        <% let oneIndex = 0 %>
+        <%# Iterate the staff name, picture, button, and checkboxes for attendance %>
+        <% for (const one of teamStaff) { %>
+                <tr id="staff-<%- colIndex %>-<%- oneIndex %>">
+                    <td><input type="hidden" name="id" value="<%- one._id %>"><button id="staff-button" type="submit" name="staffId" value="<%- one._id %>" class="staff-button btn btn-outline-light btn-sm"><img src="<%- one.picture %>" class="thumbnail" data-staffId="<%- one._id %>" alt="<%- one.name.first %> <%- one.name.last %>" title="<%- one.name.first %> <%- one.name.last %>"></button> <%- one.name.first %> <%- one.name.last %></td>
+                <%  oneIndex += 1 %>   
+            <%# Initalise the oneDays array to store the status of the attendance records in the month %>
+            <% let oneDays = Array(lastDayOfMonth).fill(0) %> 
+            <%# If the attendance records of the team exist, it will update the status of oneDays array %>
+            <% if ( typeof one.attendance !== 'undefined') { %> 
+                <%# Iterate the attendance dates of the team member, update the oneDays array and columnCount array %>
+                <% one.attendance.forEach((el, idx) => { %> 
+                    <% if (new Date(staffDate).getFullYear() == el.getFullYear() && new Date(staffDate).getMonth() == el.getMonth()) { %>
+                        <% oneDays[el.getDate()-1] = 1 %> 
+                        <% columnCount[colIndex][el.getDate() - 1] += 1 %>
+                    <% } %>            
+                <% }) %> 
+            <% } %>
+            <%# Iterate the checkboxes of the team members with the status %>        
+            <% for (let i=1; i<=lastDayOfMonth; i++ ) {  %>
+                    <td class="text-center" style="vertical-align: middle"><input type="checkbox" name="<%- one._id %>_date" value="<%- yearShortStr %>-<%- monthShortStr %>-<% if (i < 10) { %>0<%- i %><% } else { %><%- i %><% } %>"<% if (oneDays[i-1] === 1) { %> checked <% } %>></td>
+            <% } %>
+                    <td class="text-center" style="vertical-align: middle" id="rowTotal-<%- colIndex %>-<%- oneIndex-1 %>"><%- oneDays.reduce((a, b) => (a + b)) %></td>
+                </tr>
+        <% } %>
+                <tr>
+                    <td class="text-light" style="background:cornflowerblue;vertical-align: middle"><button class="btn btn-outline-light btn-sm" name="team-<%- teamNum %>" value="save" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save</button></td>
+        <%# Print the columnTotal per each team %>
+        <% for (let i=1; i<=lastDayOfMonth; i++) { %>
+                    <td class="<%if (staffDateWeek[i-1] === "U") { %>bg-dark text-light<% } else if  (staffDateWeek[i-1] === "S" ) { %>bg-secondary text-light<% } else {%>text-light<%} %> text-center" id="columnTotal-<%- colIndex %>-<%- parseInt(i-1) %>" style="background:cornflowerblue;vertical-align: middle"><%- columnCount[colIndex][i-1] %></td>
+        <% } %>
+                    <%# Print the rowTotal per each team %>
+                    <td class="text-light text-center" id="columnTotalRow-<%- colIndex %>" style="background:cornflowerblue;vertical-align: middle"><%- columnCount.map(r => r.reduce((a, b) => a + (b ? b : 0)),0)[colIndex] %></td>
+                </tr>
+                <tr>
+                    <td colspan="<%- lastDayOfMonth + 2 %>"><hr></td>
+                </tr>
+            </form>
+    <% colIndex += 1%>
+<%  }   %>
+                <tr>
+                    <td class="bg-dark text-light" style="vertical-align: middle">Grand Total</td>
+    <%# Print the columnTotal per each column %>
+    <% const columnTotalColumn = columnCount.reduce((a, b) => a.map((x, i) => x + b[i])) %>
+    <% for (let i=1; i<=lastDayOfMonth; i++) { %>
+                    <td class="bg-dark text-light text-center" style="vertical-align: middle" id="columnTotalColumn-<%- parseInt(i-1) %>"><% if (columnTotalColumn[i-1] !== 0) { %><%- columnTotalColumn[i-1] %><% } else { %> 0 <% } %></td>
+    <% } %>
+    <%# Print the grand total of the columnTotal %>
+    <% let columnTotalGrand =  columnCount.map(r => r.reduce((a, b) => a + (b ? b : 0)),0).reduce((a, b) => a + b) %> 
+                    <td class="bg-dark text-light text-center" style="vertical-align: middle" id="columnTotalGrand"><% if (columnTotalGrand !== 0) { %><%- columnTotalGrand %><% } else { %> 0 <% }  %></td>
+                </tr> 
+        </tbody>    
+    </table>
+</div>

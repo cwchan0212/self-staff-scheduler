@@ -1,0 +1,15 @@
+h1 {
+    letter-spacing: 0.3rem;
+}
+
+.thumbnail {
+    border-radius: 16px;
+    width: 30px;
+    cursor: pointer;
+}
+
+.profile {
+    border-radius: 32px;
+    width: 64px;
+}
+
