@@ -1,5 +1,5 @@
 ## Staff Scheduler 
-:arrow_right: Preview
+<a href="https://6gg9.short.gy/8D4TnI" target="_blank">:arrow_right: Preview </a>
 
 ### Introduction
 
@@ -78,8 +78,6 @@ npm start
 4. View **reports** - all teams, specified team or staff
 
 
-
-
 **Tick** the dates of staff attendance
 The user clicks the checkbox to update the attendance records of the staff, and the total counts of the column and row are then changed. After clicking the **SAVE** button, the attendance records will be updated in the database.
 
@@ -87,8 +85,6 @@ The user clicks the checkbox to update the attendance records of the staff, and 
 
 <p align="center"><img src="./assets/02.jpg" width="500"><br>
 <i>1.2 The total counts of the column and row are changed after checked</i></p>
-
-
 
 **View** reports - All / Teams / Individual
 It allows users to view the attendance report of all teams, specific teams, and individuals.
